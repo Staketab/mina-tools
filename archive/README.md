@@ -3,7 +3,7 @@ Setup Mina node with Archive and uploading blocks to GCloud.
 
 ## 1. Setup your GCLOUD service first
 ## 2. Setup Mina config
-Copy your `GCP_KEYFILE` to `$HOME/*`.  
+Copy your `GCP_KEYFILE` to `$HOME/tmp/*.json`.  
 
 Specify environments in this line `./install.sh -m MINA_IMAGE -a ARCHIVE_IMAGE -k GCP_KEYFILE -b GCP_BUCKET`  
 Example `./install.sh -m minaprotocol/mina-daemon-baked:1.1.7-d5ff5aa-mainnet -a minaprotocol/mina-archive:1.1.7-d5ff5aa -k gcp-326118.json -b archive.gcp.com`  
