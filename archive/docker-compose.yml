@@ -1,0 +1,77 @@
+version: "3.3"
+
+services:
+  mina:
+    image: ${MINA}
+    container_name: mina
+    pid: host
+    restart: always
+    env_file:
+      - $HOME/tmp/.env
+    environment: 
+      GCLOUD_KEYFILE: $HOME/tmp/${GCLOUD_KEYFILE}
+      NETWORK_NAME: ${NETWORK_NAME}
+      GCLOUD_BLOCK_UPLOAD_BUCKET: ${GCLOUD_BLOCK_UPLOAD_BUCKET}
+    command: >
+      daemon
+        --peer-list-url ${PEER_LIST}
+        --metrics-port 6061
+        --archive-address archive:3086
+        --log-precomputed-blocks true
+        --insecure-rest-server
+        --open-limited-graphql-port
+        --limited-graphql-port 3095
+        --file-log-level Debug
+        --log-level Info
+        --upload-blocks-to-gcloud true
+    ports:
+      - "6061:6061"
+      - "8302:8302"
+      - "127.0.0.1:3085:3085"
+    volumes:
+      - "$HOME/.mina-config:$HOME/.mina-config"
+      - "$HOME/tmp/${GCLOUD_KEYFILE}:$HOME/tmp/${GCLOUD_KEYFILE}"
+    networks:
+      - mina
+      
+#  postgres:
+#    image: ${POSTGRES}
+#    container_name: postgres
+#    pid: host
+#    restart: always
+#    environment:
+#      POSTGRES_USER: ${PGUSER}
+#      POSTGRES_PASSWORD: ${PGPASSWORD}
+#      POSTGRES_DB: ${POSTGRES_DB}
+#      PGDATA: /data/postgres
+#    volumes:
+#      - postgres:/data/postgres
+#    networks:
+#      - mina
+
+  archive:
+    image: ${ARCHIVE}
+    container_name: archive
+    pid: host
+    restart: always
+    env_file:
+      - $HOME/tmp/.env
+    environment: 
+      PGUSER: ${PGUSER}
+      PGPASSWORD: ${PGPASSWORD}
+    command: >
+      coda-archive run
+        --postgres-uri ${PGURI}
+        --server-port 3086
+        --log-level debug
+    depends_on:
+      - mina
+    networks:
+      - mina
+      
+#volumes:
+# postgres:
+
+networks:
+  mina:
+    driver: bridge
