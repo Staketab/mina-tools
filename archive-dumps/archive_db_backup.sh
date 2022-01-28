@@ -46,7 +46,7 @@ function launch {
         MSG=$(echo -e "$(date +%F-%H-%M-%S) | $HOSTNAME | PG DUMP CREATED")
         sendTg ${MSG}
         sendDiscord ${MSG}
-        $(which gsutil) mv ${DUMP_NAME} gs://${BLOCKS_BUCKET}
+        $(which gsutil) cp ${DUMP_NAME} gs://${BLOCKS_BUCKET}/${DUMP_NAME}
         MSG=$(echo -e "$(date +%F-%H-%M-%S) | $HOSTNAME | PG DUMP UPLOADED")
         sendTg ${MSG}
         sendDiscord ${MSG}
