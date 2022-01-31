@@ -64,7 +64,7 @@ function launch {
         $(which gsutil) --quiet cp $HOME/dumps/${DUMP_NAME} gs://${BLOCKS_BUCKET}/${DUMP_NAME}; echo $? >> ${LOG_PATH}
         rm -rf $HOME/dumps/${DUMP_NAME}
         $(which gsutil) du -s -h -a gs://${BLOCKS_BUCKET}/${DUMP_NAME} | sudo tee -a ${LOG_PATH}
-        logProcess "DONE"
+        logProcess "DONE\n---------------------------\n"
         MSG=$(echo -e "$(date +%F-%H-%M-%S) | $HOSTNAME | PG DUMP UPLOADED")
         sendTg ${MSG}
         sendDiscord ${MSG}
