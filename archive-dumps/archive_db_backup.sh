@@ -11,9 +11,18 @@ BLOCKS_BUCKET=${4}
 TG_TOKEN=${5}
 TG_CHAT_ID=${6}
 DISCORD_HOOK=${7}
+LOG_PATH="$HOME/dumps/archive_$(hostname)_log.txt"
 
 function line {
     echo "-------------------------------------------------------------------"
+}
+function set_date {
+    echo -n $(date +%F-%H-%M-%S)
+}
+
+function logProcess {
+    local logging="$@"
+    printf "|$(set_date)| $logging\n" | sudo tee -a ${LOG_PATH}
 }
 function sendTg {
   if [[ ${TG_TOKEN} != "" ]]; then
@@ -30,7 +39,7 @@ function sendDiscord {
 function pgDumpCreate {
   mkdir -p $HOME/dumps
   DUMP_NAME=$(echo "archive_$(hostname)_$(date '+%Y-%m-%d').dump")
-  PGPASSWORD=${POSTGRES_PASSWORD} $(which pg_dump) -Fc -v --host=localhost --username=${POSTGRES_USERNAME} --dbname=${POSTGRES_DBNAME} -f $HOME/dumps/${DUMP_NAME}
+  time PGPASSWORD=${POSTGRES_PASSWORD} $(which pg_dump) -Fc -v --host=localhost --username=${POSTGRES_USERNAME} --dbname=${POSTGRES_DBNAME} -f $HOME/dumps/${DUMP_NAME} . &>>${LOG_PATH}
 }
 function launch {
   while true
@@ -38,15 +47,24 @@ function launch {
     line
     echo -e "$YELLOW Start creating archive database DUMP...$NORMAL"
     line
+    logProcess "Start creating archive database DUMP"
     pgDumpCreate
       if [[ -f $HOME/dumps/${DUMP_NAME} ]]; then
         line
         echo -e "$GREEN PG DUMP CREATED.$NORMAL"
         line
+        logProcess "PG DUMP CREATED"
         MSG=$(echo -e "$(date +%F-%H-%M-%S) | $HOSTNAME | PG DUMP CREATED")
         sendTg ${MSG}
         sendDiscord ${MSG}
-        $(which gsutil) cp -r $HOME/dumps/${DUMP_NAME} gs://${BLOCKS_BUCKET}/${DUMP_NAME}
+        logProcess "Removing old DB from GCP"
+        OLD_DUMP_NAME="$($(which gsutil) ls gs://${BLOCKS_BUCKET} | egrep -o "archive_$(hostname).*dump")"
+        $(which gsutil) rm gs://${BLOCKS_BUCKET}/${OLD_DUMP_NAME}; echo $? >> ${LOG_PATH}
+        logProcess "Uploading PG DUMP to GCP"
+        $(which gsutil) --quiet cp $HOME/dumps/${DUMP_NAME} gs://${BLOCKS_BUCKET}/${DUMP_NAME}; echo $? >> ${LOG_PATH}
+        rm -rf $HOME/dumps/${DUMP_NAME}
+        $(which gsutil) du -s -h -a gs://${BLOCKS_BUCKET}/${DUMP_NAME} | sudo tee -a ${LOG_PATH}
+        logProcess "DONE"
         MSG=$(echo -e "$(date +%F-%H-%M-%S) | $HOSTNAME | PG DUMP UPLOADED")
         sendTg ${MSG}
         sendDiscord ${MSG}
