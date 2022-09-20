@@ -38,7 +38,7 @@ function sendDiscord {
 }
 function pgDumpCreate {
   mkdir -p $HOME/dumps
-  COMMIT=$(sudo docker exec -it mina mina client status --json | jq -r '.commit_id')
+  COMMIT=$(sudo docker exec mina mina client status --json | jq -r '.commit_id')
   DUMP_NAME=$(echo "archive_$(hostname)_$(date '+%Y-%m-%d')_$COMMIT.dump")
   PGPASSWORD=${POSTGRES_PASSWORD} $(which pg_dump) -Fc -v --host=localhost --username=${POSTGRES_USERNAME} --dbname=${POSTGRES_DBNAME} -f $HOME/dumps/${DUMP_NAME}
 }
