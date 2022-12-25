@@ -87,7 +87,7 @@ function launch {
         echo -e "$GREEN PG DUMP CREATED.$NORMAL"
         line
         logProcess "PG DUMP CREATED"
-        MSG=$(echo -e "$(printf ${GOOD}) | $(date +%F-%H-%M-%S) | $HOSTNAME | PG DUMP CREATED")
+        MSG=$(echo -e "$(printf ${GOOD}) | $(date +%F-%H-%M-%S) | $NODENAME | PG DUMP CREATED")
         sendTg ${MSG}
         sendDiscord ${MSG}
         logProcess "Removing old DB from GCP"
@@ -98,7 +98,7 @@ function launch {
         rm -rf $HOME/dumps/${DUMP_NAME}
         $(which gsutil) du -s -h -a gs://${BLOCKS_BUCKET}/${DUMP_NAME} | sudo tee -a ${LOG_PATH}
         logProcess "DONE\n---------------------------\n"
-        MSG=$(echo -e "$(printf ${UPLOAD}) | $(date +%F-%H-%M-%S) | $HOSTNAME | PG DUMP UPLOADED")
+        MSG=$(echo -e "$(printf ${UPLOAD}) | $(date +%F-%H-%M-%S) | $NODENAME | PG DUMP UPLOADED")
         sendTg ${MSG}
         sendDiscord ${MSG}
       else
@@ -114,7 +114,7 @@ function launch {
   done
 }
 
-while getopts ":n:p:d:u:b:t:c:d" o; do
+while getopts ":n:p:d:u:b:t:c:h" o; do
   case "${o}" in
     n)
       n=${OPTARG}
@@ -137,11 +137,11 @@ while getopts ":n:p:d:u:b:t:c:d" o; do
     c)
       c=${OPTARG}
       ;;
-    d)
-      d=${OPTARG}
+    h)
+      h=${OPTARG}
       ;;
   esac
 done
 shift $((OPTIND-1))
 
-launch "${n}" "${p}" "${d}" "${u}" "${b}" "${t}" "${c}" "${d}"
+launch "${n}" "${p}" "${d}" "${u}" "${b}" "${t}" "${c}" "${h}"
