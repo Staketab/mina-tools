@@ -10,73 +10,73 @@ STOP="\U1F6D1\n"
 
 LOG_PATH="$HOME/dumps/archive_$(hostname)_log.txt"
 
-function line {
+line() {
     echo "-------------------------------------------------------------------"
 }
-function setup {
+setup() {
   nodename "${1}"
   pgPass "${2}"
-  pgDbName "${3}".
+  pgDbName "${3}"
   pgUser "${4}"
   bucket "${5}"
   tgtoken "${6}"
   tgchatid "${7}"
   discordhook "${8}"
 }
-function nodename {
+nodename() {
   NODENAME=${1}
 }
-function pgPass {
+pgPass() {
   POSTGRES_PASSWORD=${1}
 }
-function pgDbName {
+pgDbName() {
   POSTGRES_DBNAME=${1}
 }
-function pgUser {
+pgUser() {
   POSTGRES_USERNAME=${1}
 }
-function bucket {
+bucket() {
   BLOCKS_BUCKET=${1}
 }
-function tgtoken {
+tgtoken() {
   TG_TOKEN=${1}
 }
-function tgchatid {
+tgchatid() {
   TG_CHAT_ID=${1}
 }
-function discordhook {
+discordhook() {
   DISCORD_HOOK=${1}
 }
-function set_date {
+set_date() {
     echo -n $(date +%F-%H-%M-%S)
 }
 
-function logProcess {
+logProcess() {
     local logging="$@"
     printf "|$(set_date)| $logging\n" | sudo tee -a ${LOG_PATH}
 }
-function sendTg {
+sendTg() {
   if [[ ${TG_TOKEN} != "" ]]; then
     local tg_msg="$@"
     curl -s -H 'Content-Type: application/json' --request 'POST' -d "{\"chat_id\":\"${TG_CHAT_ID}\",\"text\":\"${tg_msg}\"}" "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" -so /dev/null
   fi
 }
-function sendDiscord {
+sendDiscord() {
   if [[ ${DISCORD_HOOK} != "" ]]; then
     local discord_msg="$@"
-    curl -H "Content-Type: application/json" -X POST -d "{\"content\": \"${discord_msg}\"}" $DISCORD_HOOK -so /dev/null
+    curl -H "Content-Type: application/json" -X POST -d "{\"content\": \"$discord_msg\"}" $DISCORD_HOOK -so /dev/null
   fi
 }
-function pgDumpCreate {
+pgDumpCreate() {
   mkdir -p $HOME/dumps
   COMMIT=$(sudo docker exec mina mina client status --json | jq -r '.commit_id' | cut -c 8-)
-  DUMP_NAME=$(echo "archive_$(hostname)_$(date '+%Y-%m-%d')_$COMMIT.dump")
-  PGPASSWORD=${POSTGRES_PASSWORD} $(which pg_dump) -Fc -v --host=localhost --username=${POSTGRES_USERNAME} --dbname=${POSTGRES_DBNAME} -f $HOME/dumps/${DUMP_NAME}
+  DUMP_NAME=$(echo "archive_${NODENAME}_$(date '+%Y-%m-%d')_$COMMIT.dump")
+  PGPASSWORD=${POSTGRES_PASSWORD} $(which pg_dump) -Fc -v --host=127.0.0.1 --username=${POSTGRES_USERNAME} --dbname=${POSTGRES_DBNAME} -f $HOME/dumps/${DUMP_NAME}
 }
-function launch {
-  setup "${1}" "${2}" "${3}" "${4}" "${5}" "${6}" "${7}" "${8}"
+launch() {
   while true
   do
+    setup "${1}" "${2}" "${3}" "${4}" "${5}" "${6}" "${7}" "${8}"
     line
     echo -e "$YELLOW Start creating archive database DUMP...$NORMAL"
     line
@@ -87,7 +87,7 @@ function launch {
         echo -e "$GREEN PG DUMP CREATED.$NORMAL"
         line
         logProcess "PG DUMP CREATED"
-        MSG=$(echo -e "$(printf ${GOOD}) | $(date +%F-%H-%M-%S) | $NODENAME | PG DUMP CREATED")
+        MSG=$(echo -e "$(printf ${GOOD}) | $(date +%F-%H-%M-%S) | ${NODENAME} | PG DUMP CREATED")
         sendTg ${MSG}
         sendDiscord ${MSG}
         logProcess "Removing old DB from GCP"
@@ -98,14 +98,14 @@ function launch {
         rm -rf $HOME/dumps/${DUMP_NAME}
         $(which gsutil) du -s -h -a gs://${BLOCKS_BUCKET}/${DUMP_NAME} | sudo tee -a ${LOG_PATH}
         logProcess "DONE\n---------------------------\n"
-        MSG=$(echo -e "$(printf ${UPLOAD}) | $(date +%F-%H-%M-%S) | $NODENAME | PG DUMP UPLOADED")
+        MSG=$(echo -e "$(printf ${UPLOAD}) | $(date +%F-%H-%M-%S) | ${NODENAME} | PG DUMP UPLOADED")
         sendTg ${MSG}
         sendDiscord ${MSG}
       else
         line
         echo -e "$RED PG DUMP NOT CREATED...$NORMAL"
         line
-        MSG=$(echo -e "$(printf ${STOP}) | $(date +%F-%H-%M-%S) | $HOSTNAME | PG DUMP NOT CREATED | EXIT")
+        MSG=$(echo -e "$(printf ${STOP}) | $(date +%F-%H-%M-%S) | ${NODENAME} | PG DUMP NOT CREATED | EXIT")
         sendTg ${MSG}
         sendDiscord ${MSG}
         exit 0
@@ -114,7 +114,7 @@ function launch {
   done
 }
 
-while getopts ":n:p:d:u:b:t:c:h" o; do
+while getopts ":n:p:d:u:b:t:c:h:" o; do
   case "${o}" in
     n)
       n=${OPTARG}
