@@ -4,17 +4,48 @@ RED="\033[31m"
 YELLOW="\033[33m"
 GREEN="\033[32m"
 NORMAL="\033[0m"
-POSTGRES_PASSWORD=${1}
-POSTGRES_DBNAME=${2}
-POSTGRES_USERNAME=${3}
-BLOCKS_BUCKET=${4}
-TG_TOKEN=${5}
-TG_CHAT_ID=${6}
-DISCORD_HOOK=${7}
+UPLOAD="\U1F4E4\n"
+GOOD="\U1F7E2\n"
+STOP="\U1F6D1\n"
+
 LOG_PATH="$HOME/dumps/archive_$(hostname)_log.txt"
 
 function line {
     echo "-------------------------------------------------------------------"
+}
+function setup {
+  nodename "${1}"
+  pgPass "${2}"
+  pgDbName "${3}".
+  pgUser "${4}"
+  bucket "${5}"
+  tgtoken "${6}"
+  tgchatid "${7}"
+  discordhook "${8}"
+}
+function nodename {
+  NODENAME=${1}
+}
+function pgPass {
+  POSTGRES_PASSWORD=${1}
+}
+function pgDbName {
+  POSTGRES_DBNAME=${1}
+}
+function pgUser {
+  POSTGRES_USERNAME=${1}
+}
+function bucket {
+  BLOCKS_BUCKET=${1}
+}
+function tgtoken {
+  TG_TOKEN=${1}
+}
+function tgchatid {
+  TG_CHAT_ID=${1}
+}
+function discordhook {
+  DISCORD_HOOK=${1}
 }
 function set_date {
     echo -n $(date +%F-%H-%M-%S)
@@ -43,6 +74,7 @@ function pgDumpCreate {
   PGPASSWORD=${POSTGRES_PASSWORD} $(which pg_dump) -Fc -v --host=localhost --username=${POSTGRES_USERNAME} --dbname=${POSTGRES_DBNAME} -f $HOME/dumps/${DUMP_NAME}
 }
 function launch {
+  setup "${1}" "${2}" "${3}" "${4}" "${5}" "${6}" "${7}" "${8}"
   while true
   do
     line
@@ -55,7 +87,7 @@ function launch {
         echo -e "$GREEN PG DUMP CREATED.$NORMAL"
         line
         logProcess "PG DUMP CREATED"
-        MSG=$(echo -e "$(date +%F-%H-%M-%S) | $HOSTNAME | PG DUMP CREATED")
+        MSG=$(echo -e "$(printf ${GOOD}) | $(date +%F-%H-%M-%S) | $HOSTNAME | PG DUMP CREATED")
         sendTg ${MSG}
         sendDiscord ${MSG}
         logProcess "Removing old DB from GCP"
@@ -66,14 +98,14 @@ function launch {
         rm -rf $HOME/dumps/${DUMP_NAME}
         $(which gsutil) du -s -h -a gs://${BLOCKS_BUCKET}/${DUMP_NAME} | sudo tee -a ${LOG_PATH}
         logProcess "DONE\n---------------------------\n"
-        MSG=$(echo -e "$(date +%F-%H-%M-%S) | $HOSTNAME | PG DUMP UPLOADED")
+        MSG=$(echo -e "$(printf ${UPLOAD}) | $(date +%F-%H-%M-%S) | $HOSTNAME | PG DUMP UPLOADED")
         sendTg ${MSG}
         sendDiscord ${MSG}
       else
         line
         echo -e "$RED PG DUMP NOT CREATED...$NORMAL"
         line
-        MSG=$(echo -e "$(date +%F-%H-%M-%S) | $HOSTNAME | PG DUMP NOT CREATED | EXIT")
+        MSG=$(echo -e "$(printf ${STOP}) | $(date +%F-%H-%M-%S) | $HOSTNAME | PG DUMP NOT CREATED | EXIT")
         sendTg ${MSG}
         sendDiscord ${MSG}
         exit 0
@@ -82,4 +114,34 @@ function launch {
   done
 }
 
-launch
+while getopts ":n:p:d:u:b:t:c:d" o; do
+  case "${o}" in
+    n)
+      n=${OPTARG}
+      ;;
+    p)
+      p=${OPTARG}
+      ;;
+    d)
+      d=${OPTARG}
+      ;;
+    u)
+      u=${OPTARG}
+      ;;
+    b)
+      b=${OPTARG}
+      ;;
+    t)
+      t=${OPTARG}
+      ;;
+    c)
+      c=${OPTARG}
+      ;;
+    d)
+      d=${OPTARG}
+      ;;
+  esac
+done
+shift $((OPTIND-1))
+
+launch "${n}" "${p}" "${d}" "${u}" "${b}" "${t}" "${c}" "${d}"
